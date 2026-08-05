@@ -12,6 +12,10 @@ export default {
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
+        "brand-red": "#B71C1C",
+        "brand-red-hover": "#9A1515",
+        "brand-border": "#E2E8F0",
+        "brand-bg": "#F8FAFC",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
