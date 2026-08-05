@@ -3,69 +3,45 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Input } from "@/components/ui/input.jsx";
-import { Bookmark, Clock, MapPin, Users, Calendar, Star, Search, Filter, Building2, DollarSign, ArrowRight, TrendingUp, Sparkles, Info } from "lucide-react";
+import { Bookmark, Clock, MapPin, Users, Calendar, Star, Search, Filter, Building2, ArrowRight, Sparkles, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext.jsx";
-import { useToast } from "@/components/ui/use-toast.js";
+import { toast } from "sonner";
 import ApplicationStatusModal from "@/components/applications/ApplicationStatusModal.jsx";
 import DriveInfoModal from "@/components/drives/DriveInfoModal.jsx";
+import { driveService } from "@/services/driveService.ts";
+import { useTheme } from "@/providers/ThemeProvider.jsx";
 
 export default function MyDrives() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [drives, setDrives] = useState([]);
-  const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = useState(null);
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [selectedDriveId, setSelectedDriveId] = useState(null);
   
-  const { getAuthHeaders, API_BASE_URL, user } = useAuth();
-  const { toast } = useToast();
+  const { user } = useAuth();
+  const { palette } = useTheme();
+  const paletteColors = {
+    somaiya: { primary: "#800000", accent: "#990000" }
+  };
+  const currentColors = paletteColors[palette] || paletteColors.somaiya;
 
   useEffect(() => {
     fetchDrives();
-    fetchApplications();
   }, []);
 
   const fetchDrives = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/drives`);
-      if (response.ok) {
-        const data = await response.json();
-        const apiDrives = data.drives || [];
-
-        // Frontend-first workflow rule: students should only see published drives.
-        if (user?.role === 'student') {
-          setDrives(apiDrives.filter((drive) => drive.approvalStatus === 'published'));
-        } else {
-          setDrives(apiDrives);
-        }
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const response = await driveService.getDrives({ limit: 50 });
+      if (response.success) {
+        setDrives(response.data || []);
       }
     } catch (error) {
       console.error('Failed to fetch drives:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load company drives",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const fetchApplications = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/applications/drives`, {
-        headers: getAuthHeaders()
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setApplications(data.applications || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch applications:', error);
+      toast.error("Failed to load company drives");
     } finally {
       setLoading(false);
     }
@@ -73,73 +49,44 @@ export default function MyDrives() {
 
   const handleApply = async (driveId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/drives/${driveId}/apply`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-
-      if (response.ok) {
-        const newApplication = await response.json();
-        
-        // Add the new application to the applications state
-        setApplications(prev => [...prev, {
-          id: newApplication._id,
-          driveId: driveId,
-          status: 'applied',
-          appliedDate: new Date().toISOString(),
-          currentStage: 'Applied',
-          nextStep: 'Online Test'
-        }]);
-        
-        toast({
-          title: "Application Submitted!",
-          description: "Your application has been submitted successfully",
-        });
-        
-        // Refresh drives to update applicant count
-        await fetchDrives();
+      const response = await driveService.expressInterest(driveId);
+      if (response.success) {
+        toast.success("Interest Registered successfully");
+        await fetchDrives(); // refresh list to update userStatus
       } else {
-        const error = await response.json();
-        toast({
-          title: "Application Failed",
-          description: error.message || "Failed to submit application",
-          variant: "destructive"
-        });
+        toast.error(response.message || "Failed to express interest");
       }
     } catch (error) {
       console.error('Apply error:', error);
-      toast({
-        title: "Network Error",
-        description: "Failed to submit application",
-        variant: "destructive"
-      });
+      toast.error("Failed to submit interest");
     }
   };
 
-  // Merge drives with application status
-  const drivesWithStatus = drives.map(drive => {
-    const application = applications.find(app => app.driveId === drive._id);
-    return {
-      ...drive,
-      status: application?.status || 'eligible',
-      appliedDate: application?.appliedDate,
-      currentStage: application?.currentStage,
-      nextStep: application?.nextStep,
-      processStageIndex: application?.processStageIndex || 0,
-      applicationId: application?.id
-    };
-  });
+  const handleBookmark = async (driveId) => {
+    try {
+      const response = await driveService.toggleBookmark(driveId);
+      if (response.success) {
+        toast.success(response.message);
+        await fetchDrives(); // refresh list to update bookmark state
+      }
+    } catch (error) {
+      toast.error("Failed to bookmark drive");
+    }
+  }
 
-  const filteredDrives = drivesWithStatus.filter(drive => {
-    const matchesTab = activeTab === "all" || drive.status === activeTab;
+  const filteredDrives = drives.filter(drive => {
+    // Map backend userStatus to tab filters
+    const status = drive.userStatus || "eligible"; 
+    const matchesTab = activeTab === "all" || status === activeTab;
     const matchesSearch =
-      drive.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      drive.role.toLowerCase().includes(searchQuery.toLowerCase());
+      drive.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      drive.role?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
   const getStatusBadge = (status) => {
     const styles = {
+      interested: "bg-primary/10 text-primary border-primary/20",
       applied: "bg-primary/10 text-primary border-primary/20",
       bookmarked: "bg-warning/10 text-warning border-warning/20",
       eligible: "bg-success/10 text-success border-success/20",
@@ -148,18 +95,18 @@ export default function MyDrives() {
       interview: "bg-purple-500/10 text-purple-500 border-purple-500/20",
       selected: "bg-green-500/10 text-green-500 border-green-500/20"
     };
-    return styles[status] || "";
+    return styles[status] || styles.eligible; // default to eligible visually
   };
 
   const tabs = [
-    { id: "all", label: "All Drives", count: drivesWithStatus.length },
-    { id: "applied", label: "Applied", count: drivesWithStatus.filter(d => d.status === "applied").length },
-    { id: "bookmarked", label: "Bookmarked", count: drivesWithStatus.filter(d => d.status === "bookmarked").length },
-    { id: "eligible", label: "Eligible", count: drivesWithStatus.filter(d => d.status === "eligible").length },
+    { id: "all", label: "All Drives", count: drives.length },
+    { id: "interested", label: "Interested", count: drives.filter(d => d.userStatus === "interested" || d.userStatus === "applied").length },
+    { id: "eligible", label: "Eligible", count: drives.filter(d => !d.userStatus).length },
   ];
 
   const handleViewStatus = (drive) => {
-    setSelectedApplicationId(drive.applicationId);
+    // Assuming backend will populate app ID, if not just show info modal
+    setSelectedApplicationId(drive._id);
     setStatusModalOpen(true);
   };
 
@@ -169,20 +116,28 @@ export default function MyDrives() {
   };
 
   const getActionButton = (drive) => {
-    switch (drive.status) {
-      case "eligible":
-      case "bookmarked":
-        return (
-          <Button 
-            className="bg-gradient-to-r from-primary to-accent" 
-            size="sm"
-            onClick={() => handleApply(drive._id)}
-          >
-            Apply Now
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Button>
-        );
+    const status = drive.userStatus;
+    
+    if (!status) { // null or eligible
+      return (
+        <Button 
+          style={{ background: currentColors.primary }}
+          className="text-white"
+          size="sm"
+          onClick={() => handleApply(drive._id)}
+        >
+          Express Interest
+          <ArrowRight className="w-4 h-4 ml-1" />
+        </Button>
+      );
+    }
+    
+    switch (status) {
+      case "interested":
       case "applied":
+      case "shortlisted":
+      case "interview":
+      case "selected":
         return (
           <Button 
             variant="outline" 
@@ -210,8 +165,8 @@ export default function MyDrives() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -219,7 +174,7 @@ export default function MyDrives() {
   return (
     <div className="p-6 space-y-6">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent via-primary to-accent p-10 text-white shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl p-10 text-white shadow-2xl" style={{ background: `linear-gradient(135deg, ${currentColors.primary}, ${currentColors.accent})` }}>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20" />
         
         <div className="relative">
@@ -262,12 +217,11 @@ export default function MyDrives() {
       </div>
 
       {/* Premium Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { icon: Users, value: drivesWithStatus.filter(d => d.status === "applied").length, label: "Applied", gradient: "from-primary to-primary/80" },
-          { icon: Bookmark, value: drivesWithStatus.filter(d => d.status === "bookmarked").length, label: "Bookmarked", gradient: "from-warning to-warning/80" },
-          { icon: Clock, value: drivesWithStatus.filter(d => d.status === "interview").length, label: "In Progress", gradient: "from-success to-success/80" },
-          { icon: Star, value: "85%", label: "Profile Match", gradient: "from-accent to-accent/80" },
+          { icon: Users, value: drives.filter(d => d.userStatus === "interested").length, label: "Interested", gradient: "from-primary to-primary/80" },
+          { icon: Clock, value: drives.filter(d => ["shortlisted", "interview"].includes(d.userStatus)).length, label: "In Progress", gradient: "from-success to-success/80" },
+          { icon: Star, value: "85%", label: "Avg Profile Match", gradient: "from-accent to-accent/80" },
         ].map((stat, index) => (
           <Card 
             key={index}
@@ -295,7 +249,8 @@ export default function MyDrives() {
             key={tab.id}
             variant={activeTab === tab.id ? "default" : "outline"}
             onClick={() => setActiveTab(tab.id)}
-            className={activeTab === tab.id ? "bg-gradient-to-r from-primary to-accent shadow-lg" : ""}
+            className={activeTab === tab.id ? "text-white shadow-lg" : ""}
+            style={activeTab === tab.id ? { background: currentColors.primary } : {}}
           >
             {tab.label}
             <Badge variant="secondary" className="ml-2 text-xs bg-muted">
@@ -315,9 +270,9 @@ export default function MyDrives() {
               <p className="text-muted-foreground mb-6">
                 {searchQuery ? `No results for "${searchQuery}"` : "No drives match your current filter"}
               </p>
-              <Button className="bg-gradient-to-r from-primary to-accent">
+              <Button style={{ background: currentColors.primary }} className="text-white">
                 <Sparkles className="w-4 h-4 mr-2" />
-                Explore All Drives
+                Clear Filters
               </Button>
             </CardContent>
           </Card>
@@ -343,7 +298,11 @@ export default function MyDrives() {
                   <div className="relative">
                     <div className="absolute inset-0 bg-primary/20 rounded-2xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-card to-muted/50 flex items-center justify-center text-4xl border border-border/50 shadow-lg">
-                      {drive.logo || "🏢"}
+                      {drive.companyLogo ? (
+                         <img src={drive.companyLogo} alt={drive.companyName} className="rounded-2xl object-cover" />
+                      ) : (
+                         <span className="font-bold text-2xl">{drive.companyName?.[0]}</span>
+                      )}
                     </div>
                   </div>
 
@@ -353,26 +312,24 @@ export default function MyDrives() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="text-2xl font-bold group-hover:text-primary transition-colors">
-                            {drive.company}
+                            {drive.companyName}
                           </h3>
-                          {drive.featured && (
-                            <Badge className="bg-gradient-to-r from-primary to-accent text-white border-0 shadow-lg">
-                              <Star className="w-3 h-3 mr-1 fill-current" />
-                              Featured
-                            </Badge>
-                          )}
+                          {/* <Badge className="bg-gradient-to-r from-primary to-accent text-white border-0 shadow-lg">
+                            <Star className="w-3 h-3 mr-1 fill-current" />
+                            Featured
+                          </Badge> */}
                           <motion.div
                             initial={{ opacity: 0, x: 10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.22, delay: 0.1 + index * 0.03 }}
                           >
-                            <Badge variant="outline" className={getStatusBadge(drive.status)}>
-                              {drive.status}
+                            <Badge variant="outline" className={getStatusBadge(drive.userStatus || "eligible")}>
+                              {drive.userStatus || "eligible"}
                             </Badge>
                           </motion.div>
                         </div>
                         <h4 className="text-lg font-semibold mb-4 text-muted-foreground">
-                          {drive.role}
+                          {drive.role} • {drive.domain}
                         </h4>
                       </div>
                     </div>
@@ -385,7 +342,7 @@ export default function MyDrives() {
                         </p>
                         <p className="text-sm font-medium flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5" />
-                          {drive.location}
+                          {drive.location || "Remote / Onsite"}
                         </p>
                       </div>
                       <div>
@@ -393,7 +350,7 @@ export default function MyDrives() {
                           Package
                         </p>
                         <p className="text-sm font-bold text-primary flex items-center gap-1">
-                          {drive.package}
+                          {drive.ctc ? `₹${drive.ctc} LPA` : "Not Disclosed"}
                         </p>
                       </div>
                       <div>
@@ -408,28 +365,23 @@ export default function MyDrives() {
                     </div>
 
                     {/* Application Progress */}
-                    {drive.status === "applied" && (
+                    {["interested", "applied", "shortlisted"].includes(drive.userStatus) && (
                       <div className="p-4 mb-4 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm font-semibold mb-1">
-                              Current Stage: <span className="text-primary">{drive.currentStage || 'Application Submitted'}</span>
+                              Current Stage: <span className="text-primary capitalize">{drive.userStatus}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Applied on {new Date(drive.appliedDate).toLocaleDateString()}
+                              Track your progress carefully
                             </p>
                           </div>
-                          {drive.nextStep && (
-                            <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                              Next: {drive.nextStep}
-                            </Badge>
-                          )}
                         </div>
                       </div>
                     )}
 
                     {/* Rejected Application Status */}
-                    {drive.status === "rejected" && (
+                    {drive.userStatus === "rejected" && (
                       <div className="p-4 mb-4 rounded-xl bg-gradient-to-r from-destructive/10 to-red-100/10 border border-destructive/20">
                         <div className="flex items-center justify-between">
                           <div>
@@ -437,7 +389,7 @@ export default function MyDrives() {
                               Application Rejected
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Applied on {new Date(drive.appliedDate).toLocaleDateString()}
+                              Keep trying and enhancing your skills.
                             </p>
                           </div>
                           <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">
@@ -450,7 +402,7 @@ export default function MyDrives() {
                     {/* Requirements & Actions */}
                     <div className="flex items-center justify-between">
                       <div className="flex flex-wrap gap-2">
-                        {drive.requirements.map((req) => (
+                        {drive.allowedBranches?.map((req) => (
                           <Badge 
                             key={req} 
                             variant="outline" 
@@ -461,7 +413,7 @@ export default function MyDrives() {
                         ))}
                         <Badge variant="outline" className="text-xs px-2 py-1 bg-muted/20">
                           <Users className="w-3 h-3 mr-1" />
-                          {drive.applicants} applicants
+                          {drive.interestCount || 0} interested
                         </Badge>
                       </div>
                       
@@ -474,7 +426,11 @@ export default function MyDrives() {
                         >
                           <Info className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleBookmark(drive._id)}
+                        >
                           <Bookmark className="w-4 h-4" />
                         </Button>
                         {getActionButton(drive)}

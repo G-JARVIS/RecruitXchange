@@ -5,112 +5,76 @@ import { Input } from "@/components/ui/input.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Progress } from "@/components/ui/progress.jsx";
 import { Search, BookOpen, Play, Clock, Star, Users, Award, TrendingUp, Zap, ArrowRight, CheckCircle } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext.jsx";
-import { useToast } from "@/components/ui/use-toast.js";
+import { learningService } from "@/services/learningService.ts";
+import { toast } from "sonner";
+import { useTheme } from "@/providers/ThemeProvider.jsx";
 
 export default function LearningHub() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [courses, setCourses] = useState([]);
+  const [paths, setPaths] = useState([]);
   const [userProgress, setUserProgress] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  const { getAuthHeaders, API_BASE_URL } = useAuth();
-  const { toast } = useToast();
+  const { palette } = useTheme();
 
-  useEffect(() => {
-    fetchCourses();
-    fetchUserProgress();
-  }, []);
-
-  const fetchCourses = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/learning/courses`);
-      if (response.ok) {
-        const data = await response.json();
-        setCourses(data.courses || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch courses:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load courses",
-        variant: "destructive"
-      });
+  // Dynamic color mappings based on palette
+  const paletteColors = {
+    somaiya: {
+      primary: "#800000",
+      accent: "#990000",
     }
   };
+  const currentColors = paletteColors[palette] || paletteColors.somaiya;
 
-  const fetchUserProgress = async () => {
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/learning/progress`, {
-        headers: getAuthHeaders()
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setUserProgress(data || []);
+      const pathsRes = await learningService.getPaths();
+      if (pathsRes.success) {
+        setPaths(pathsRes.data);
       }
+      
+      // MOCK: Replace with actual progress endpoint when ready
+      setUserProgress([]); 
     } catch (error) {
-      console.error('Failed to fetch progress:', error);
+      console.error('Failed to fetch learning paths:', error);
+      toast.error("Failed to load learning paths");
     } finally {
       setLoading(false);
     }
   };
 
-  const updateProgress = async (courseId, progress, completed = false) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/learning/progress/${courseId}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ progress, completed })
-      });
-
-      if (response.ok) {
-        const updatedProgress = await response.json();
-        setUserProgress(prev => 
-          prev.filter(p => p.courseId?._id !== courseId).concat([updatedProgress])
-        );
-        toast({
-          title: "Progress Updated",
-          description: `Your progress has been saved`,
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update progress",
-        variant: "destructive"
-      });
-    }
-  };
-
   const getCourseProgress = (courseId) => {
-    const progress = userProgress.find(p => p.courseId?._id === courseId);
+    const progress = userProgress.find(p => p.courseId === courseId);
     return progress || { progress: 0, completed: false };
   };
 
-  const filteredCourses = courses.filter(course =>
-    course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredPaths = paths.filter(path =>
+    path.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    path.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    path.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const getLevelColor = (level) => {
     const colors = {
-      Beginner: "bg-success/10 text-success border-success/20",
-      Intermediate: "bg-warning/10 text-warning border-warning/20",
-      Advanced: "bg-destructive/10 text-destructive border-destructive/20",
+      beginner: "bg-success/10 text-success border-success/20",
+      intermediate: "bg-warning/10 text-warning border-warning/20",
+      advanced: "bg-destructive/10 text-destructive border-destructive/20",
     };
-    return colors[level] || "";
+    return colors[level.toLowerCase()] || "";
   };
 
-  const inProgressCourses = courses.filter(course => {
+  const inProgressCourses = paths.filter(course => {
     const progress = getCourseProgress(course._id);
     return progress.progress > 0 && !progress.completed;
   });
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -118,7 +82,7 @@ export default function LearningHub() {
   return (
     <div className="p-6 space-y-6">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-accent to-primary p-10 text-white shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl p-10 text-white shadow-2xl" style={{ background: `linear-gradient(135deg, ${currentColors.primary}, ${currentColors.accent})` }}>
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20" />
         
         <div className="relative">
@@ -141,20 +105,13 @@ export default function LearningHub() {
               <div className="relative flex items-center">
                 <Search className="absolute left-4 h-5 w-5 text-white/70 z-10" />
                 <Input
-                  placeholder="Search courses, topics, or skills..."
+                  placeholder="Search paths, domains, or skills..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-12 pr-4 h-14 bg-white/10 backdrop-blur-xl border-white/20 text-white placeholder:text-white/60 focus:bg-white/20 focus:border-white/40 rounded-2xl text-base"
                 />
               </div>
             </div>
-            <Button 
-              variant="secondary" 
-              size="lg"
-              className="h-14 px-6 bg-white/10 backdrop-blur-xl border-white/20 text-white hover:bg-white/20 rounded-2xl"
-            >
-              Browse All Courses
-            </Button>
           </div>
         </div>
       </div>
@@ -162,8 +119,8 @@ export default function LearningHub() {
       {/* Premium Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[
-          { icon: BookOpen, value: `${courses.length}+`, label: "Courses", gradient: "from-primary to-primary/80" },
-          { icon: Users, value: courses.reduce((sum, course) => sum + course.students, 0), label: "Students", gradient: "from-success to-success/80" },
+          { icon: BookOpen, value: `${paths.length}+`, label: "Learning Paths", gradient: "from-primary to-primary/80" },
+          { icon: Users, value: paths.reduce((sum, p) => sum + p.enrollmentCount, 0), label: "Enrolled", gradient: "from-success to-success/80" },
           { icon: Award, value: `${userProgress.filter(p => p.completed).length}`, label: "Completed", gradient: "from-accent to-accent/80" },
           { icon: Star, value: "4.8", label: "Avg Rating", gradient: "from-warning to-warning/80" },
         ].map((stat, index) => (
@@ -186,61 +143,11 @@ export default function LearningHub() {
         ))}
       </div>
 
-      {/* Continue Learning Section */}
-      {inProgressCourses.length > 0 && (
-        <Card className="bg-gradient-glass border-primary/20 backdrop-blur-xl overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-3 text-xl">
-              <div className="p-2 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg">
-                <Play className="w-5 h-5 text-primary" />
-              </div>
-              Continue Learning
-            </CardTitle>
-            <CardDescription>Pick up where you left off</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {inProgressCourses.map((course) => {
-                const progress = getCourseProgress(course._id);
-                return (
-                  <div 
-                    key={course._id} 
-                    className="group flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-br from-card/80 to-card/40 border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg"
-                  >
-                    <div className="text-5xl">{course.thumbnail}</div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">
-                        {course.title}
-                      </h4>
-                      <p className="text-xs text-muted-foreground mb-3">{course.instructor}</p>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Progress value={progress.progress} className="flex-1 h-2" />
-                          <span className="text-xs font-semibold text-primary">{progress.progress}%</span>
-                        </div>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
-                      className="bg-gradient-to-r from-primary to-accent"
-                      onClick={() => updateProgress(course._id, Math.min(progress.progress + 10, 100))}
-                    >
-                      Continue
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* All Courses */}
+      {/* All Learning Paths */}
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">{filteredCourses.length} Courses Available</h2>
+            <h2 className="text-2xl font-bold">{filteredPaths.length} Learning Paths Available</h2>
             <p className="text-sm text-muted-foreground mt-1">
               {searchQuery ? `Filtered by "${searchQuery}"` : "Explore our complete catalog"}
             </p>
@@ -248,28 +155,25 @@ export default function LearningHub() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course, index) => {
-            const progress = getCourseProgress(course._id);
+          {filteredPaths.map((path, index) => {
+            const progress = getCourseProgress(path._id);
             return (
               <Card 
-                key={course._id} 
-                className="group bg-gradient-glass border-border/50 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 overflow-hidden"
+                key={path._id} 
+                className="group bg-gradient-glass border-border/50 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 overflow-hidden flex flex-col"
                 style={{ animation: `fadeIn 0.5s ease-out ${index * 0.1}s both` }}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
-                <CardContent className="p-6 space-y-4 relative">
+                <CardContent className="p-6 space-y-4 relative flex-1 flex flex-col">
                   {/* Header */}
                   <div className="flex items-start justify-between">
-                    <div className="text-5xl transition-transform duration-500 group-hover:scale-110">
-                      {course.thumbnail}
+                    <div className="text-5xl transition-transform duration-500 group-hover:scale-110 h-16 w-16 bg-muted rounded-xl flex items-center justify-center">
+                      {path.thumbnail ? <img src={path.thumbnail} alt={path.title} className="rounded-xl object-cover" /> : <BookOpen className="w-8 h-8 text-primary" />}
                     </div>
                     <div className="flex flex-col gap-2">
-                      <Badge 
-                        variant={course.price === "Free" ? "secondary" : "default"} 
-                        className={course.price === "Free" ? "bg-success/10 text-success border-success/20" : "bg-gradient-to-r from-primary to-accent text-white border-0"}
-                      >
-                        {course.price}
+                      <Badge variant="outline" className={getLevelColor(path.difficulty) + " capitalize"}>
+                        {path.difficulty}
                       </Badge>
                       {progress.progress > 0 && (
                         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
@@ -280,45 +184,43 @@ export default function LearningHub() {
                   </div>
 
                   {/* Content */}
-                  <div>
+                  <div className="flex-1">
                     <h3 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors leading-tight">
-                      {course.title}
+                      {path.title}
                     </h3>
                     <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
-                      <span className="font-medium">{course.instructor}</span>
+                      <span className="font-medium">{path.domain}</span>
                       <span className="text-muted-foreground/50">•</span>
-                      <Badge variant="outline" className={getLevelColor(course.level)}>
-                        {course.level}
-                      </Badge>
+                      <span>Target: {path.targetRole}</span>
                     </p>
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {course.description}
+                      {path.description}
                     </p>
                   </div>
 
                   {/* Stats */}
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground pb-3 border-b border-border/50">
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground pb-3 border-b border-border/50 mt-auto">
                     <div className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5" />
-                      <span className="font-medium">{course.duration}</span>
+                      <span className="font-medium">{path.estimatedHours}h</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Star className="w-3.5 h-3.5 fill-warning text-warning" />
-                      <span className="font-medium">{course.rating}</span>
+                      <span className="font-medium">{path.rating}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5" />
-                      <span className="font-medium">{course.students}</span>
+                      <span className="font-medium">{path.enrollmentCount}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <BookOpen className="w-3.5 h-3.5" />
-                      <span className="font-medium">{course.modules} modules</span>
+                      <span className="font-medium">{path.modules?.length || 0} modules</span>
                     </div>
                   </div>
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1.5">
-                    {course.tags.map((tag) => (
+                    {path.tags.slice(0, 4).map((tag) => (
                       <Badge 
                         key={tag} 
                         variant="outline" 
@@ -327,36 +229,26 @@ export default function LearningHub() {
                         {tag}
                       </Badge>
                     ))}
+                    {path.tags.length > 4 && (
+                      <Badge variant="outline" className="text-xs px-2 py-0.5 bg-muted/30">
+                        +{path.tags.length - 4}
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-2">
                     <Button 
-                      variant={progress.progress > 0 ? "default" : "default"}
-                      className={progress.progress > 0 ? "flex-1 bg-gradient-to-r from-primary to-accent" : "flex-1 bg-gradient-to-r from-primary to-accent"}
+                      variant="default"
+                      className="flex-1"
+                      style={{ background: currentColors.primary }}
                       size="sm"
-                      onClick={() => {
-                        if (progress.progress > 0) {
-                          updateProgress(course._id, Math.min(progress.progress + 10, 100));
-                        } else {
-                          updateProgress(course._id, 10);
-                        }
-                      }}
                     >
-                      {progress.progress > 0 ? (
-                        <>
-                          <Play className="w-4 h-4 mr-1" />
-                          Continue
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="w-4 h-4 mr-1" />
-                          Start Course
-                        </>
-                      )}
+                      <Play className="w-4 h-4 mr-1" />
+                      {progress.progress > 0 ? 'Continue' : 'Start Path'}
                     </Button>
                     <Button variant="outline" size="sm" className="hover:bg-primary/5">
-                      Preview
+                      Details
                     </Button>
                   </div>
                 </CardContent>

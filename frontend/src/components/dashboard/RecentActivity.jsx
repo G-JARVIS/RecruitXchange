@@ -19,11 +19,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext.jsx";
 import { useTheme } from "@/providers/ThemeProvider.jsx";
 
-export default function RecentActivity() {
-  const [activities, setActivities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  const { getAuthHeaders, API_BASE_URL } = useAuth();
+export default function RecentActivity({ attempts = [] }) {
   const { palette } = useTheme();
 
   // Dynamic color mappings based on palette
@@ -36,36 +32,17 @@ export default function RecentActivity() {
 
   const currentColors = paletteColors[palette] || paletteColors.somaiya;
 
-  useEffect(() => {
-    fetchRecentActivity();
-  }, []);
-
-  const fetchRecentActivity = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/dashboard/recent-activity`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setActivities(data || []);
-      } else {
-        // Fallback to mock data
-        setActivities([
-          {
-            id: 1,
-            type: "course_completed",
-            title: "Completed React Hooks Mastery",
-            description: "Advanced hooks and performance optimization",
-            timestamp: "2 hours ago",
-            points: "+50 XP",
-          }
-        ]);
-      }
-    } catch (error) {
-      console.error('Failed to fetch recent activity:', error);
-      // Fallback to mock data
-      setActivities([
+  // Format real attempts into activity objects, fallback to mock if none
+  const activities = attempts.length > 0 
+    ? attempts.map(a => ({
+        id: a._id,
+        type: a.type === 'coding' ? 'practice_session' : 'skill_assessment',
+        title: `Attempted: ${a.questionId?.title || 'Question'}`,
+        description: a.isCorrect ? 'Passed test cases' : 'Attempted to solve',
+        timestamp: new Date(a.submittedAt).toLocaleDateString(),
+        points: `+${a.score} XP`
+      }))
+    : [
         {
           id: 1,
           type: "course_completed",
@@ -90,11 +67,7 @@ export default function RecentActivity() {
           timestamp: "1 day ago",
           points: "+100 XP",
         }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      ];
 
   const getActivityIcon = (type) => {
     const icons = {
@@ -120,32 +93,7 @@ export default function RecentActivity() {
     return colors[type] || "success";
   };
 
-  if (loading) {
-    return (
-      <Card className="bg-gradient-glass border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary" />
-            Recent Activity
-          </CardTitle>
-          <CardDescription>Loading your learning journey...</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map((item) => (
-              <div key={item} className="flex items-start gap-4 p-3 rounded-lg bg-gradient-glass border border-border/50 animate-pulse">
-                <div className="w-10 h-10 rounded-lg bg-muted"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-muted rounded w-3/4"></div>
-                  <div className="h-3 bg-muted rounded w-1/2"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Loading state removed, handled by parent
 
   return (
     <Card className="bg-gradient-glass border-primary/20">

@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/providers/ThemeProvider.jsx";
 
-export default function QuickActions() {
+export default function QuickActions({ profile }) {
   const { palette } = useTheme();
 
   // Dynamic color mappings based on palette
@@ -67,7 +67,7 @@ export default function QuickActions() {
       description: "Keep your profile fresh",
       icon: FileText,
       color: "muted",
-      action: "Last updated 2w ago",
+      action: profile?.resumeUrl ? "Uploaded" : "Needs Upload",
     },
     {
       title: "Skill Assessment",

@@ -3,185 +3,110 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Progress } from "@/components/ui/progress.jsx";
-import { Trophy, Target, Zap, Clock, Brain, ArrowRight, X } from "lucide-react";
+import { Trophy, Target, Zap, Clock, Brain, ArrowRight, X, Code, CheckCircle, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext.jsx";
-import { useToast } from "@/components/ui/use-toast.js";
+import { toast } from "sonner";
+import { practiceService } from "@/services/practiceService.ts";
+import CodeEditor from "@/components/practice/CodeEditor.jsx";
+import { useTheme } from "@/providers/ThemeProvider.jsx";
 
-// --- Sub-Component: Quiz Results View ---
-const QuizResults = ({ score, totalQuestions, xpEarned, leveledUp, newLevel, currentXP, onRetake, onBack }) => {
-    const percentage = Math.round((score / totalQuestions) * 100);
-    const message = score === totalQuestions
-        ? "Perfect Score! You nailed it!"
-        : score >= totalQuestions * 0.7
-        ? "Great Job! You have a solid grasp."
-        : "Good attempt! Review the concepts and try again.";
+// --- Sub-Component: Quiz Player (For MCQ/Aptitude) ---
+const QuizPlayer = ({ question, onComplete, onBack }) => {
+    const [selectedOption, setSelectedOption] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [result, setResult] = useState(null);
 
-    const scoreColor = percentage >= 80 ? "text-success" : percentage >= 50 ? "text-warning" : "text-destructive";
+    const handleSubmit = async () => {
+        if (!selectedOption) return;
+        setIsSubmitting(true);
+        try {
+            const response = await practiceService.submitAttempt(question._id, {
+                answer: selectedOption,
+                timeTaken: 30, // Mock timer
+            });
+            if (response.success) {
+                setResult(response.data);
+                if (response.data.isCorrect) {
+                    toast.success(`Correct! Earned ${response.data.xpEarned} XP`);
+                } else {
+                    toast.error("Incorrect answer. See explanation.");
+                }
+            }
+        } catch (error) {
+            toast.error("Failed to submit answer");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
-    return (
-        <Card className="max-w-xl mx-auto mt-10 p-10 text-center shadow-2xl border-primary/20">
-            <Trophy className={`w-20 h-20 mx-auto mb-4 ${scoreColor}`} strokeWidth={1.5} />
-            <CardTitle className="text-3xl font-extrabold mb-4">Quiz Complete!</CardTitle>
-            <CardDescription className="text-lg mb-6">{message}</CardDescription>
-            
-            <div className="space-y-4 mb-8">
-                <div className="text-6xl font-black mb-2 flex items-center justify-center gap-2">
-                    <span className={scoreColor}>{score}</span> / <span>{totalQuestions}</span>
-                </div>
-                <Progress value={percentage} className="h-4" />
-                <p className="text-2xl font-bold">{percentage}% Score</p>
-                <div className="space-y-2">
-                    <Badge variant="secondary" className="text-sm">
-                        XP Earned: {xpEarned || (score * 10)} XP
-                    </Badge>
-                    {leveledUp && (
-                        <Badge className="text-sm bg-gradient-to-r from-primary to-accent text-white">
-                            🎉 Level Up! Now Level {newLevel}
-                        </Badge>
-                    )}
-                    <div className="text-xs text-muted-foreground">
-                        Progress to next level: {currentXP || 0}/1000 XP
+    if (result) {
+        return (
+            <Card className="max-w-xl mx-auto mt-10 p-10 text-center shadow-2xl border-primary/20">
+                {result.isCorrect ? (
+                    <Trophy className="w-20 h-20 mx-auto mb-4 text-success" strokeWidth={1.5} />
+                ) : (
+                    <X className="w-20 h-20 mx-auto mb-4 text-destructive" strokeWidth={1.5} />
+                )}
+                <CardTitle className="text-3xl font-extrabold mb-4">
+                    {result.isCorrect ? "Correct!" : "Incorrect"}
+                </CardTitle>
+                <div className="space-y-4 mb-8 text-left">
+                    <p className="font-bold text-lg">{question.text}</p>
+                    <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
+                        <p className="font-semibold text-primary mb-2">Explanation:</p>
+                        <p className="text-muted-foreground">{result.explanation || "No explanation provided."}</p>
                     </div>
                 </div>
-            </div>
-
-            <div className="flex justify-center gap-4">
-                <Button onClick={onRetake} className="bg-gradient-to-r from-primary to-accent hover:shadow-lg">
-                    Retake Quiz
-                </Button>
-                <Button onClick={onBack} variant="outline">
-                    Back to List
-                </Button>
-            </div>
-        </Card>
-    );
-};
-
-// --- Sub-Component: Quiz Taking View ---
-const QuizPlayer = ({ quiz, onQuizEnd, onBack }) => {
-    const [currentQIndex, setCurrentQIndex] = useState(0);
-    const [score, setScore] = useState(0);
-    const [selectedOption, setSelectedOption] = useState(null);
-    const [isAnswered, setIsAnswered] = useState(false);
-    const [isQuizComplete, setIsQuizComplete] = useState(false);
-    const [userAnswers, setUserAnswers] = useState([]); // Track all user answers
-    const [quizResult, setQuizResult] = useState(null); // Store quiz results from backend
-
-    if (!quiz || !quiz.questions || quiz.questions.length === 0) {
-        return <div className="p-10 text-center">Quiz data missing.</div>;
-    }
-
-    const currentQuestion = quiz.questions[currentQIndex];
-    const totalQuestions = quiz.questions.length;
-
-    const handleAnswer = (optionIndex) => {
-        if (isAnswered) return;
-        setSelectedOption(optionIndex);
-        setIsAnswered(true);
-
-        // Store the answer for submission
-        const answerData = {
-            questionIndex: currentQIndex,
-            selectedOption: optionIndex
-        };
-        
-        setUserAnswers(prev => [...prev, answerData]);
-
-        // Note: We don't check correctness here since we don't have the correct answers
-        // The backend will handle scoring when we submit
-    };
-
-    const handleNext = () => {
-        if (currentQIndex < totalQuestions - 1) {
-            setCurrentQIndex(prev => prev + 1);
-            setSelectedOption(null);
-            setIsAnswered(false);
-        } else {
-            setIsQuizComplete(true);
-            onQuizEnd(userAnswers, totalQuestions, setQuizResult); // Pass callback to set results
-        }
-    };
-
-    // Render the results screen if the quiz is complete
-    if (isQuizComplete) {
-        return (
-            <QuizResults 
-                score={quizResult?.correctAnswers || score} 
-                totalQuestions={totalQuestions}
-                xpEarned={quizResult?.xpEarned}
-                leveledUp={quizResult?.leveledUp}
-                newLevel={quizResult?.newLevel}
-                currentXP={quizResult?.currentXP}
-                onRetake={() => {
-                    setCurrentQIndex(0);
-                    setScore(0);
-                    setIsAnswered(false);
-                    setSelectedOption(null);
-                    setIsQuizComplete(false);
-                    setUserAnswers([]); // Reset answers
-                    setQuizResult(null); // Reset results
-                }}
-                onBack={onBack}
-            />
+                <div className="flex justify-center gap-4">
+                    <Button onClick={() => { onComplete(result); onBack(); }} className="bg-gradient-to-r from-primary to-accent hover:shadow-lg">
+                        Continue Practice
+                    </Button>
+                </div>
+            </Card>
         );
     }
-    
-    // Determine button state/color
-    const getOptionClass = (index) => {
-        if (!isAnswered) {
-            return "hover:bg-primary/5 hover:border-primary/30";
-        }
-        if (index === selectedOption) {
-            return "bg-primary text-white border-primary shadow-lg shadow-primary/30";
-        }
-        return "bg-muted/50 border-border";
-    };
 
     return (
         <Card className="max-w-3xl mx-auto mt-10 p-8 shadow-2xl border-accent/20">
-            <div className="flex justify-between items-center mb-6 border-b pb-4">
-                <h3 className="text-xl font-bold text-accent">{quiz.title}</h3>
-                <Badge variant="outline" className="text-lg px-4 py-1">
-                    Question {currentQIndex + 1} / {totalQuestions}
+            <div className="flex justify-between items-center mb-6 border-b border-border/50 pb-4">
+                <h3 className="text-xl font-bold text-accent">{question.title}</h3>
+                <Badge variant="outline" className="text-lg px-4 py-1 bg-muted/50">
+                    <Clock className="w-4 h-4 mr-2" />
+                    Time Limit: 2:00
                 </Badge>
             </div>
 
-            {/* Question Progress */}
-            <div className="mb-6">
-                 <Progress value={((currentQIndex + 1) / totalQuestions) * 100} className="h-2" />
-                 <p className="text-sm text-muted-foreground mt-2 text-right">Progress</p>
-            </div>
-
-            <CardTitle className="text-2xl mb-8 leading-relaxed">
-                {currentQuestion.text}
+            <CardTitle className="text-2xl mb-8 leading-relaxed font-normal">
+                <div dangerouslySetInnerHTML={{ __html: question.text || question.description }} />
             </CardTitle>
 
             <div className="space-y-4 mb-8">
-                {currentQuestion.options.map((option, index) => (
+                {question.options?.map((option, index) => (
                     <Button
                         key={index}
                         variant="outline"
-                        onClick={() => handleAnswer(index)}
-                        className={`w-full h-auto justify-start p-4 text-left font-medium text-base transition-all duration-300 ${getOptionClass(index)}`}
-                        disabled={isAnswered}
+                        onClick={() => setSelectedOption(option)}
+                        className={`w-full h-auto justify-start p-4 text-left font-medium text-base transition-all duration-300 ${
+                            selectedOption === option ? "bg-primary text-white border-primary shadow-lg shadow-primary/30" : "bg-muted/50 hover:bg-primary/5 hover:border-primary/30"
+                        }`}
                     >
-                        <span className="mr-4 font-bold text-primary/80">{String.fromCharCode(65 + index)}.</span>
+                        <span className="mr-4 font-bold opacity-70">{String.fromCharCode(65 + index)}.</span>
                         {option}
                     </Button>
                 ))}
             </div>
 
-            <div className="flex justify-between items-center pt-4 border-t">
-                <Button variant="outline" onClick={onBack} disabled={isAnswered}>
+            <div className="flex justify-between items-center pt-4 border-t border-border/50">
+                <Button variant="outline" onClick={onBack}>
                     <X className="w-4 h-4 mr-2" />
-                    Quit Quiz
+                    Back
                 </Button>
                 <Button 
-                    onClick={handleNext} 
-                    disabled={!isAnswered}
+                    onClick={handleSubmit} 
+                    disabled={!selectedOption || isSubmitting}
                     className="bg-gradient-to-r from-accent to-primary hover:shadow-lg hover:shadow-primary/30"
                 >
-                    {currentQIndex === totalQuestions - 1 ? "Finish Quiz" : "Next Question"}
+                    {isSubmitting ? "Submitting..." : "Submit Answer"}
                     <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
             </div>
@@ -189,268 +114,240 @@ const QuizPlayer = ({ quiz, onQuizEnd, onBack }) => {
     );
 };
 
-// --- Main Component: PracticeHub (Quiz List) ---
+// --- Main Component: PracticeHub ---
 export default function PracticeHub() {
     const [activeView, setActiveView] = useState("list");
-    const [selectedQuiz, setSelectedQuiz] = useState(null);
-    const [activeQuiz, setActiveQuiz] = useState(null);
-    const [quizzes, setQuizzes] = useState([]);
-    const [quizResults, setQuizResults] = useState([]);
+    const [activeQuestion, setActiveQuestion] = useState(null);
+    const [questions, setQuestions] = useState([]);
+    const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [activeType, setActiveType] = useState('coding'); // 'coding' or 'mcq'
     
-    const { getAuthHeaders, API_BASE_URL } = useAuth();
-    const { toast } = useToast();
+    const { palette } = useTheme();
+    const paletteColors = {
+        somaiya: { primary: "#800000", accent: "#990000" }
+    };
+    const currentColors = paletteColors[palette] || paletteColors.somaiya;
 
     useEffect(() => {
-        fetchQuizzes();
-        fetchQuizResults();
-    }, []);
+        fetchQuestions();
+        fetchStats();
+    }, [activeType]);
 
-    const fetchQuizzes = async () => {
+    const fetchQuestions = async () => {
+        setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/quizzes`);
-            if (response.ok) {
-                const data = await response.json();
-                setQuizzes(data.quizzes || []);
+            const response = await practiceService.getQuestions({ type: activeType, limit: 50 });
+            if (response.success) {
+                setQuestions(response.data || []);
             }
         } catch (error) {
-            console.error('Failed to fetch quizzes:', error);
-            toast({
-                title: "Error",
-                description: "Failed to load quizzes",
-                variant: "destructive"
-            });
-        }
-    };
-
-    const fetchQuizResults = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/quizzes/my-results`, {
-                headers: getAuthHeaders()
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setQuizResults(data.results || []);
-            }
-        } catch (error) {
-            console.error('Failed to fetch quiz results:', error);
+            toast.error("Failed to load questions");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleStartQuiz = async (quizId) => {
+    const fetchStats = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`);
-            if (response.ok) {
-                const quiz = await response.json();
-                setActiveQuiz(quiz);
-                setActiveView("quiz");
-            } else {
-                throw new Error('Failed to load quiz');
+            const response = await practiceService.getAttempts();
+            if (response.success && response.data?.stats) {
+                setStats(response.data.stats);
             }
         } catch (error) {
-            toast({
-                title: "Error",
-                description: "Failed to load quiz",
-                variant: "destructive"
-            });
+            console.error(error);
         }
     };
 
-    const handleQuizEnd = async (userAnswers, totalQuestions, setQuizResult) => {
-        if (activeQuiz) {
-            try {
-                const response = await fetch(`${API_BASE_URL}/quizzes/${activeQuiz._id}/submit`, {
-                    method: 'POST',
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({ answers: userAnswers })
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    
-                    // Set the quiz result for the results component
-                    setQuizResult(result);
-                    
-                    // Show success notification with XP earned
-                    toast({
-                        title: result.leveledUp ? "🎉 Level Up!" : "Quiz Completed!",
-                        description: result.leveledUp 
-                            ? `You scored ${result.score}% and reached Level ${result.newLevel}! (+${result.xpEarned} XP, ${result.currentXP}/1000 XP to next level)`
-                            : `You scored ${result.score}% and earned ${result.xpEarned} XP (${result.currentXP}/1000 XP to next level)`,
-                    });
-                    
-                    // Update the quiz results state
-                    setQuizResults(prev => [
-                        ...prev.filter(r => r.quizId !== activeQuiz._id),
-                        {
-                            quizId: activeQuiz._id,
-                            score: result.score,
-                            completed: true
-                        }
-                    ]);
-                } else {
-                    throw new Error('Failed to submit quiz');
-                }
-            } catch (error) {
-                console.error('Quiz submission error:', error);
-                toast({
-                    title: "Error",
-                    description: "Failed to submit quiz results",
-                    variant: "destructive"
-                });
+    const handleStartQuestion = async (qId) => {
+        try {
+            const response = await practiceService.getQuestionById(qId);
+            if (response.success) {
+                setActiveQuestion(response.data.question);
+                setActiveView(response.data.question.type === 'coding' ? 'code-editor' : 'quiz');
             }
+        } catch (error) {
+            toast.error("Failed to load question details");
         }
+    };
+
+    const handleComplete = (result) => {
+        fetchStats();
     };
 
     const getDifficultyColor = (difficulty) => {
         const colors = {
-            Easy: "bg-success/10 text-success border-success/20",
-            Medium: "bg-warning/10 text-warning border-warning/20",
-            Hard: "bg-destructive/10 text-destructive border-destructive/20",
+            easy: "bg-success/10 text-success border-success/20",
+            medium: "bg-warning/10 text-warning border-warning/20",
+            hard: "bg-destructive/10 text-destructive border-destructive/20",
         };
         return colors[difficulty] || "";
     };
 
-    const availableQuizzes = quizzes.map(quiz => {
-        const result = quizResults.find(result => result.quizId === quiz._id);
-        return {
-            id: quiz._id,
-            title: quiz.title,
-            difficulty: quiz.difficulty,
-            category: quiz.category,
-            questionsCount: quiz.questions?.length || 0,
-            timeLimit: quiz.timeLimit,
-            completed: !!result,
-            score: result?.score || null,
-        };
-    });
+    if (loading && activeView === "list") {
+        return (
+            <div className="p-6 flex items-center justify-center min-h-[60vh]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
+    }
 
-    const renderQuizList = () => (
-        <>
+    if (activeView === "code-editor" && activeQuestion) {
+        return (
+            <div className="p-4 h-[calc(100vh-80px)]">
+                <CodeEditor 
+                    question={activeQuestion} 
+                    onBack={() => setActiveView("list")}
+                    onComplete={handleComplete}
+                />
+            </div>
+        );
+    }
+
+    if (activeView === "quiz" && activeQuestion) {
+        return (
+            <div className="p-6">
+                <QuizPlayer 
+                    question={activeQuestion} 
+                    onBack={() => setActiveView("list")}
+                    onComplete={handleComplete}
+                />
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-6 space-y-6">
             {/* Header section */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent via-primary to-accent p-10 text-white shadow-2xl">
+            <div className="relative overflow-hidden rounded-3xl p-10 text-white shadow-2xl" style={{ background: `linear-gradient(135deg, ${currentColors.primary}, ${currentColors.accent})` }}>
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-20" />
                 
                 <div className="relative">
                     <div className="flex items-center gap-3 mb-4">
                         <div className="p-3 bg-white/10 backdrop-blur-xl rounded-2xl">
-                            <Target className="w-8 h-8" />
+                            <Code className="w-8 h-8" />
                         </div>
                         <div>
-                            <h1 className="text-4xl font-bold">MCQ Quiz Practice</h1>
+                            <h1 className="text-4xl font-bold">Practice Hub</h1>
                             <p className="text-lg text-white/90 mt-1">
-                                Test your theoretical knowledge across {availableQuizzes.length} domains.
+                                Sharpen your skills with real interview questions.
                             </p>
                         </div>
                     </div>
 
                     <div className="flex gap-3 mt-6">
-                         <Button 
+                        <Button 
+                            variant={activeType === 'coding' ? 'secondary' : 'outline'}
+                            onClick={() => setActiveType('coding')}
                             size="lg"
                             className="bg-white/10 backdrop-blur-xl border border-white/20 text-white hover:bg-white/20 transition-all"
                         >
-                            <Zap className="w-5 h-5 mr-2" />
-                            Challenge Streak: 7 Days
+                            <Code className="w-5 h-5 mr-2" />
+                            Coding Challenges
                         </Button>
                         <Button 
-                            variant="outline" 
+                            variant={activeType === 'mcq' ? 'secondary' : 'outline'}
+                            onClick={() => setActiveType('mcq')}
                             size="lg"
-                            className="bg-white/10 backdrop-blur-xl border-white/30 text-white hover:bg-white/20 transition-all"
+                            className="bg-white/10 backdrop-blur-xl border border-white/20 text-white hover:bg-white/20 transition-all"
                         >
-                            <Trophy className="w-5 h-5 mr-2" />
-                            Global Rank: #1234
+                            <Brain className="w-5 h-5 mr-2" />
+                            MCQ Quizzes
                         </Button>
                     </div>
                 </div>
             </div>
 
-            {/* Quiz Cards */}
-            <Card className="bg-gradient-glass border-accent/20 backdrop-blur-xl overflow-hidden">
+            {/* Premium Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                    { icon: Target, value: stats?.total || 0, label: "Problems Attempted", gradient: "from-primary to-primary/80" },
+                    { icon: CheckCircle, value: stats?.correct || 0, label: "Problems Solved", gradient: "from-success to-success/80" },
+                    { icon: Zap, value: `${stats?.passRate || 0}%`, label: "Pass Rate", gradient: "from-warning to-warning/80" },
+                ].map((stat, index) => (
+                <Card 
+                    key={index}
+                    className="group bg-gradient-glass border-border/50 hover:border-primary/30 transition-all duration-500 hover:shadow-xl hover:shadow-primary/10"
+                >
+                    <CardContent className="p-5">
+                    <div className="flex items-center gap-4">
+                        <div className={`relative w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg transition-transform duration-500 group-hover:scale-110`}>
+                        <stat.icon className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                        <p className="text-3xl font-bold">{stat.value}</p>
+                        <p className="text-sm text-muted-foreground font-medium">{stat.label}</p>
+                        </div>
+                    </div>
+                    </CardContent>
+                </Card>
+                ))}
+            </div>
+
+            {/* Questions List */}
+            <Card className="bg-gradient-glass border-primary/20 backdrop-blur-xl overflow-hidden">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-3 text-xl">
-                        <div className="p-2 bg-gradient-to-br from-accent/20 to-primary/20 rounded-lg">
-                            <Brain className="w-5 h-5 text-accent" />
+                        <div className="p-2 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg">
+                            <Target className="w-5 h-5 text-primary" />
                         </div>
-                        Available Quizzes
+                        Available Challenges
                     </CardTitle>
                     <CardDescription>
-                        Select a quiz to begin testing your knowledge. Each quiz has multiple questions.
+                        Select a challenge to begin testing your knowledge.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {availableQuizzes.map((quiz, index) => (
+                        {questions.map((q, index) => (
                             <div 
-                                key={quiz.id} 
-                                className="p-5 rounded-2xl bg-gradient-to-br from-card/80 to-card/40 border border-border/50 hover:border-accent/30 transition-all duration-300 hover:shadow-lg hover:shadow-accent/10"
+                                key={q._id} 
+                                className="p-5 rounded-2xl bg-gradient-to-br from-card/80 to-card/40 border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 flex flex-col justify-between"
                                 style={{ animation: `fadeIn 0.5s ease-out ${index * 0.1}s both` }}
                             >
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-semibold text-xl">{quiz.title}</h4>
-                                        {quiz.completed && (
-                                            <Badge className="bg-gradient-to-r from-success to-success/80 text-white border-0 shadow-lg">
-                                                {quiz.score}%
-                                            </Badge>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                        <span className="flex items-center gap-1">
-                                            <Brain className="w-3.5 h-3.5" />
-                                            {quiz.questionsCount} questions
-                                        </span>
-                                        <span className="flex items-center gap-1">
-                                            <Clock className="w-3.5 h-3.5" />
-                                            {quiz.timeLimit} min
-                                        </span>
-                                        <Badge variant="outline" className={getDifficultyColor(quiz.difficulty)}>
-                                            {quiz.difficulty}
+                                <div className="space-y-4 mb-4">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <h4 className="font-semibold text-lg leading-tight">{q.title}</h4>
+                                        <Badge variant="outline" className={`${getDifficultyColor(q.difficulty)} capitalize`}>
+                                            {q.difficulty}
                                         </Badge>
                                     </div>
-                                    <Badge variant="outline" className="bg-muted/30">
-                                        {quiz.category}
-                                    </Badge>
-                                    {quiz.completed && quiz.score && (
-                                        <Progress value={quiz.score} className="h-2" />
-                                    )}
-                                    <Button 
-                                        onClick={() => handleStartQuiz(quiz.id)}
-                                        className="w-full bg-gradient-to-r from-accent to-primary hover:shadow-lg hover:shadow-accent/30"
-                                    >
-                                        {quiz.completed ? "Retake Quiz" : "Start Quiz"}
-                                        <ArrowRight className="w-4 h-4 ml-2" />
-                                    </Button>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {q.tags?.map(tag => (
+                                            <Badge key={tag} variant="secondary" className="bg-muted/30 text-xs px-2 py-0.5">
+                                                {tag}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                        <span className="flex items-center gap-1">
+                                            <Users className="w-3.5 h-3.5" />
+                                            {q.totalAttempts || 0} attempts
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <CheckCircle className="w-3.5 h-3.5" />
+                                            {q.correctRate || 0}% success rate
+                                        </span>
+                                    </div>
                                 </div>
+                                <Button 
+                                    onClick={() => handleStartQuestion(q._id)}
+                                    className="w-full text-white hover:shadow-lg"
+                                    style={{ background: currentColors.primary }}
+                                >
+                                    {activeType === 'coding' ? 'Solve Challenge' : 'Attempt Question'}
+                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                </Button>
                             </div>
                         ))}
+                        {questions.length === 0 && (
+                            <div className="col-span-2 text-center py-12 text-muted-foreground">
+                                No questions found for the selected category.
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>
-        </>
-    );
-
-    if (loading) {
-        return (
-            <div className="p-6 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-            </div>
-        );
-    }
-
-    // Main rendering logic based on the activeView state
-    return (
-        <div className="p-6 space-y-6">
-            {activeView === "list" && renderQuizList()}
-            
-            {activeView === "quiz" && activeQuiz && (
-                <QuizPlayer 
-                    quiz={activeQuiz} 
-                    onQuizEnd={handleQuizEnd} 
-                    onBack={() => setActiveView("list")} 
-                />
-            )}
         </div>
     );
 }

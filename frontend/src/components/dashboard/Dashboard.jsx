@@ -10,6 +10,7 @@ import UpcomingEvents from "./UpcomingEvents.jsx";
 import QuickActions from "./QuickActions.jsx";
 import { useAuth } from "@/contexts/AuthContext.jsx";
 import { useTheme } from "@/providers/ThemeProvider.jsx";
+import { studentService } from "@/services/studentService.ts";
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
@@ -35,13 +36,9 @@ export default function Dashboard() {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/dashboard/stats`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setDashboardData(data);
+      const response = await studentService.getDashboardStats();
+      if (response.success) {
+        setDashboardData(response.data);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -52,28 +49,29 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  const stats = dashboardData?.applications || {
-    applied: 3,
-    bookmarked: 2,
-    interviews: 1,
-    total: 6
+  const { stats, profile, recentAttempts } = dashboardData || {};
+
+  const learning = {
+    completedCourses: stats?.totalAttempts || 0,
+    totalXp: stats?.xp || 0,
+    level: stats?.level || 1,
   };
 
-  const learning = dashboardData?.learning || {
-    completedCourses: 24,
-    totalXp: 235,
-    inProgress: 3
+  const readiness = {
+    score: stats?.readinessScore || 0,
+    level: stats?.level || 1,
   };
 
-  const readiness = dashboardData?.readiness || {
-    score: 78,
-    level: 12
+  const applications = {
+    applied: 0,
+    total: 5,
+    interviews: 0,
   };
 
   return (
@@ -158,7 +156,7 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-muted-foreground">
                   Applications Sent
                 </p>
-                <p className="text-2xl font-bold text-success">{stats.applied}</p>
+                <p className="text-2xl font-bold text-success">{applications.applied}</p>
                 <p className="text-xs text-success">↗ +2 this week</p>
               </div>
               <div 
@@ -180,8 +178,8 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-muted-foreground">
                   Active Drives
                 </p>
-                <p className="text-2xl font-bold text-warning">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">{stats.interviews} interviews</p>
+                <p className="text-2xl font-bold text-warning">{applications.total}</p>
+                <p className="text-xs text-muted-foreground">{applications.interviews} interviews</p>
               </div>
               <div 
                 className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
@@ -199,16 +197,16 @@ export default function Dashboard() {
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
-          <ReadinessGauge />
+          <ReadinessGauge score={readiness.score} level={readiness.level} />
         </div>
         <div className="lg:col-span-2">
-          <QuickActions />
+          <QuickActions profile={profile} />
         </div>
       </div>
 
       {/* Bottom Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentActivity />
+        <RecentActivity attempts={recentAttempts || []} />
         <UpcomingEvents />
       </div>
 
