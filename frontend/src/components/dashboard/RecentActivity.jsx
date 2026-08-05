@@ -28,29 +28,13 @@ export default function RecentActivity() {
 
   // Dynamic color mappings based on palette
   const paletteColors = {
-    aurora: {
-      primary: "linear-gradient(135deg, hsl(280 100% 65%), hsl(295 100% 75%))",
-      accent: "linear-gradient(135deg, hsl(295 100% 75%), hsl(280 100% 65%))"
-    },
-    sunset: {
-      primary: "linear-gradient(135deg, hsl(15 100% 65%), hsl(25 100% 75%))",
-      accent: "linear-gradient(135deg, hsl(25 100% 75%), hsl(15 100% 65%))"
-    },
-    ocean: {
-      primary: "linear-gradient(135deg, hsl(200 100% 60%), hsl(210 100% 70%))",
-      accent: "linear-gradient(135deg, hsl(210 100% 70%), hsl(200 100% 60%))"
-    },
-    forest: {
-      primary: "linear-gradient(135deg, hsl(140 80% 55%), hsl(150 80% 65%))",
-      accent: "linear-gradient(135deg, hsl(150 80% 65%), hsl(140 80% 55%))"
-    },
-    cosmic: {
-      primary: "linear-gradient(135deg, hsl(260 100% 70%), hsl(280 100% 80%))",
-      accent: "linear-gradient(135deg, hsl(280 100% 80%), hsl(260 100% 70%))"
+    somaiya: {
+      primary: "linear-gradient(135deg, #800000, #990000)",
+      accent: "linear-gradient(135deg, #990000, #800000)"
     }
   };
 
-  const currentColors = paletteColors[palette] || paletteColors.aurora;
+  const currentColors = paletteColors[palette] || paletteColors.somaiya;
 
   useEffect(() => {
     fetchRecentActivity();
@@ -196,9 +180,9 @@ export default function RecentActivity() {
                 case 'accent':
                   return { background: currentColors.accent };
                 case 'success':
-                  return { background: palette === 'forest' ? currentColors.primary : 'hsl(var(--success))' };
+                  return { background: 'hsl(var(--success))' };
                 case 'warning':
-                  return { background: palette === 'sunset' ? currentColors.primary : 'hsl(var(--warning))' };
+                  return { background: 'hsl(var(--warning))' };
                 default:
                   return { background: currentColors.primary };
               }

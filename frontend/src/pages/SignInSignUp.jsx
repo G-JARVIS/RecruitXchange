@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input.jsx";
 import { Label } from "@/components/ui/label.jsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.jsx";
-import { ArrowRight, Lock, User, Sparkles, Mail, UserPlus, Shield } from "lucide-react";
+import { ArrowRight, Lock, User, Sparkles, Mail, UserPlus, Shield, Building2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext.jsx";
 import { useToast } from "@/components/ui/use-toast.js";
 
@@ -49,7 +49,13 @@ export default function SignInSignUp() {
       await new Promise((resolve) => setTimeout(resolve, 700));
 
       switchRole(formData.role, {
-        name: formData.name || (formData.role === 'admin' ? 'Admin User' : 'Student User'),
+        name:
+          formData.name ||
+          (formData.role === 'admin'
+            ? 'Placement Officer'
+            : formData.role === 'recruiter'
+            ? 'Recruiter User'
+            : 'Student User'),
         email: formData.email,
       });
 
@@ -118,6 +124,12 @@ export default function SignInSignUp() {
                       Admin
                     </div>
                   </SelectItem>
+                  <SelectItem value="recruiter">
+                    <div className="flex items-center">
+                      <Building2 className="w-4 h-4 mr-2" />
+                      Recruiter
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -157,6 +169,12 @@ export default function SignInSignUp() {
                         <div className="flex items-center">
                           <Shield className="w-4 h-4 mr-2" />
                           Admin
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="recruiter">
+                        <div className="flex items-center">
+                          <Building2 className="w-4 h-4 mr-2" />
+                          Recruiter
                         </div>
                       </SelectItem>
                     </SelectContent>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Bookmark, Clock, MapPin, Users, Calendar, Star, Search, Filter, Building2, DollarSign, ArrowRight, TrendingUp, Sparkles, Info } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext.jsx";
 import { useToast } from "@/components/ui/use-toast.js";
 import ApplicationStatusModal from "@/components/applications/ApplicationStatusModal.jsx";
@@ -20,7 +21,7 @@ export default function MyDrives() {
   const [infoModalOpen, setInfoModalOpen] = useState(false);
   const [selectedDriveId, setSelectedDriveId] = useState(null);
   
-  const { getAuthHeaders, API_BASE_URL } = useAuth();
+  const { getAuthHeaders, API_BASE_URL, user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,7 +34,14 @@ export default function MyDrives() {
       const response = await fetch(`${API_BASE_URL}/drives`);
       if (response.ok) {
         const data = await response.json();
-        setDrives(data.drives || []);
+        const apiDrives = data.drives || [];
+
+        // Frontend-first workflow rule: students should only see published drives.
+        if (user?.role === 'student') {
+          setDrives(apiDrives.filter((drive) => drive.approvalStatus === 'published'));
+        } else {
+          setDrives(apiDrives);
+        }
       } else {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -314,11 +322,18 @@ export default function MyDrives() {
             </CardContent>
           </Card>
         ) : (
-          filteredDrives.map((drive, index) => (
-            <Card 
-              key={drive._id} 
+          <AnimatePresence mode="popLayout">
+            {filteredDrives.map((drive, index) => (
+            <motion.div
+              key={drive._id}
+              layout
+              initial={{ opacity: 0, y: 18, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -14, scale: 0.985 }}
+              transition={{ duration: 0.32, delay: index * 0.04, ease: "easeOut" }}
+            >
+            <Card
               className="group bg-gradient-glass border-border/50 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500 overflow-hidden"
-              style={{ animation: `fadeIn 0.5s ease-out ${index * 0.1}s both` }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               
@@ -346,9 +361,15 @@ export default function MyDrives() {
                               Featured
                             </Badge>
                           )}
-                          <Badge variant="outline" className={getStatusBadge(drive.status)}>
-                            {drive.status}
-                          </Badge>
+                          <motion.div
+                            initial={{ opacity: 0, x: 10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.22, delay: 0.1 + index * 0.03 }}
+                          >
+                            <Badge variant="outline" className={getStatusBadge(drive.status)}>
+                              {drive.status}
+                            </Badge>
+                          </motion.div>
                         </div>
                         <h4 className="text-lg font-semibold mb-4 text-muted-foreground">
                           {drive.role}
@@ -463,7 +484,9 @@ export default function MyDrives() {
                 </div>
               </CardContent>
             </Card>
-          ))
+            </motion.div>
+          ))}
+          </AnimatePresence>
         )}
       </div>
 

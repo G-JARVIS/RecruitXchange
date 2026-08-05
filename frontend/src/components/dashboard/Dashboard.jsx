@@ -19,39 +19,15 @@ export default function Dashboard() {
 
   // Dynamic color mappings based on palette
   const paletteColors = {
-    aurora: {
-      primary: "hsl(280 100% 65%)",
-      accent: "hsl(295 100% 75%)",
-      gradient: "linear-gradient(135deg, hsl(280 100% 65%) 0%, hsl(295 100% 75%) 50%, hsl(310 100% 70%) 100%)",
-      cardGradient: "linear-gradient(135deg, hsl(280 100% 65%), hsl(295 100% 75%))"
-    },
-    sunset: {
-      primary: "hsl(15 100% 65%)",
-      accent: "hsl(25 100% 75%)",
-      gradient: "linear-gradient(135deg, hsl(15 100% 65%) 0%, hsl(25 100% 75%) 50%, hsl(35 100% 70%) 100%)",
-      cardGradient: "linear-gradient(135deg, hsl(15 100% 65%), hsl(25 100% 75%))"
-    },
-    ocean: {
-      primary: "hsl(200 100% 60%)",
-      accent: "hsl(210 100% 70%)",
-      gradient: "linear-gradient(135deg, hsl(200 100% 60%) 0%, hsl(210 100% 70%) 50%, hsl(220 100% 65%) 100%)",
-      cardGradient: "linear-gradient(135deg, hsl(200 100% 60%), hsl(210 100% 70%))"
-    },
-    forest: {
-      primary: "hsl(140 80% 55%)",
-      accent: "hsl(150 80% 65%)",
-      gradient: "linear-gradient(135deg, hsl(140 80% 55%) 0%, hsl(150 80% 65%) 50%, hsl(160 80% 60%) 100%)",
-      cardGradient: "linear-gradient(135deg, hsl(140 80% 55%), hsl(150 80% 65%))"
-    },
-    cosmic: {
-      primary: "hsl(260 100% 70%)",
-      accent: "hsl(280 100% 80%)",
-      gradient: "linear-gradient(135deg, hsl(270 90% 45%) 0%, hsl(280 100% 65%) 50%, hsl(295 100% 75%) 100%)",
-      cardGradient: "linear-gradient(135deg, hsl(260 100% 70%), hsl(280 100% 80%))"
+    somaiya: {
+      primary: "#800000",
+      accent: "#990000",
+      gradient: "linear-gradient(135deg, #800000 0%, #990000 55%, #b91c1c 100%)",
+      cardGradient: "linear-gradient(135deg, #800000, #990000)"
     }
   };
 
-  const currentColors = paletteColors[palette] || paletteColors.aurora;
+  const currentColors = paletteColors[palette] || paletteColors.somaiya;
 
   useEffect(() => {
     fetchDashboardData();
@@ -188,9 +164,7 @@ export default function Dashboard() {
               <div 
                 className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
                 style={{ 
-                  background: palette === 'forest' 
-                    ? currentColors.cardGradient 
-                    : 'hsl(var(--success))' 
+                  background: 'hsl(var(--success))' 
                 }}
               >
                 <Code className="w-6 h-6 text-white" />
@@ -212,9 +186,7 @@ export default function Dashboard() {
               <div 
                 className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg"
                 style={{ 
-                  background: palette === 'sunset' 
-                    ? currentColors.cardGradient 
-                    : 'hsl(var(--warning))' 
+                  background: 'hsl(var(--warning))' 
                 }}
               >
                 <Users className="w-6 h-6 text-white" />

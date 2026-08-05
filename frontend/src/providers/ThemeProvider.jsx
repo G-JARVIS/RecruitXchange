@@ -1,37 +1,15 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext } from "react";
+import { useAuth } from "@/contexts/AuthContext.jsx";
 
 // Create the context
 const ThemeContext = createContext(undefined);
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("theme") || "light";
-    }
-    return "light";
-  });
+  const { theme, setTheme } = useAuth();
 
-  const [palette, setPalette] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("palette") || "aurora";
-    }
-    return "aurora";
-  });
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-
-    // Apply theme
-    root.classList.remove("light", "dark");
-    root.classList.add(theme);
-
-    // Apply palette
-    root.setAttribute("data-theme", palette);
-
-    // Store in localStorage
-    localStorage.setItem("theme", theme);
-    localStorage.setItem("palette", palette);
-  }, [theme, palette]);
+  // Keep API compatibility for existing components while enforcing a single brand palette.
+  const palette = "somaiya";
+  const setPalette = () => {};
 
   const value = {
     theme,

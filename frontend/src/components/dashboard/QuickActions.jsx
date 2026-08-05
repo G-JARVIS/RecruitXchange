@@ -23,39 +23,15 @@ export default function QuickActions() {
 
   // Dynamic color mappings based on palette
   const paletteColors = {
-    aurora: {
-      primary: "hsl(280 100% 65%)",
-      accent: "hsl(295 100% 75%)",
-      cardGradient: "linear-gradient(135deg, hsl(280 100% 65%), hsl(295 100% 75%))",
-      accentGradient: "linear-gradient(135deg, hsl(295 100% 75%), hsl(280 100% 65%))"
-    },
-    sunset: {
-      primary: "hsl(15 100% 65%)",
-      accent: "hsl(25 100% 75%)",
-      cardGradient: "linear-gradient(135deg, hsl(15 100% 65%), hsl(25 100% 75%))",
-      accentGradient: "linear-gradient(135deg, hsl(25 100% 75%), hsl(15 100% 65%))"
-    },
-    ocean: {
-      primary: "hsl(200 100% 60%)",
-      accent: "hsl(210 100% 70%)",
-      cardGradient: "linear-gradient(135deg, hsl(200 100% 60%), hsl(210 100% 70%))",
-      accentGradient: "linear-gradient(135deg, hsl(210 100% 70%), hsl(200 100% 60%))"
-    },
-    forest: {
-      primary: "hsl(140 80% 55%)",
-      accent: "hsl(150 80% 65%)",
-      cardGradient: "linear-gradient(135deg, hsl(140 80% 55%), hsl(150 80% 65%))",
-      accentGradient: "linear-gradient(135deg, hsl(150 80% 65%), hsl(140 80% 55%))"
-    },
-    cosmic: {
-      primary: "hsl(260 100% 70%)",
-      accent: "hsl(280 100% 80%)",
-      cardGradient: "linear-gradient(135deg, hsl(260 100% 70%), hsl(280 100% 80%))",
-      accentGradient: "linear-gradient(135deg, hsl(280 100% 80%), hsl(260 100% 70%))"
+    somaiya: {
+      primary: "#800000",
+      accent: "#990000",
+      cardGradient: "linear-gradient(135deg, #800000, #990000)",
+      accentGradient: "linear-gradient(135deg, #990000, #800000)"
     }
   };
 
-  const currentColors = paletteColors[palette] || paletteColors.aurora;
+  const currentColors = paletteColors[palette] || paletteColors.somaiya;
 
   const actions = [
     {
@@ -125,11 +101,11 @@ export default function QuickActions() {
                     background: action.color === "primary"
                       ? currentColors.cardGradient
                       : action.color === "success"
-                      ? (palette === "forest" ? currentColors.cardGradient : "hsl(var(--success))")
+                      ? "hsl(var(--success))"
                       : action.color === "accent"
                       ? currentColors.accentGradient
                       : action.color === "warning"
-                      ? (palette === "sunset" ? currentColors.cardGradient : "hsl(var(--warning))")
+                      ? "hsl(var(--warning))"
                       : action.color === "destructive"
                       ? "hsl(var(--destructive))"
                       : "hsl(var(--muted))"

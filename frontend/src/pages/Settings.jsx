@@ -6,24 +6,16 @@ import { Label } from "@/components/ui/label.jsx";
 import { Switch } from "@/components/ui/switch.jsx";
 import { Badge } from "@/components/ui/badge.jsx";
 import { useTheme } from "@/providers/ThemeProvider.jsx";
-import { Settings as SettingsIcon, Palette, Bell, Shield, User, Moon, Sun, Mail, Smartphone, MessageSquare, Check, Sparkles } from "lucide-react";
+import { Settings as SettingsIcon, Palette, Bell, Shield, User, Moon, Sun, Mail, Smartphone, MessageSquare, Sparkles } from "lucide-react";
 
 export default function Settings() {
-  const { theme, palette, setTheme, setPalette } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
     sms: false,
     marketing: false,
   });
-
-  const palettes = [
-    { id: "aurora", name: "Aurora", description: "Purple-pink cosmic vibes", colors: ["#8B5CF6", "#EC4899", "#F97316"] },
-    { id: "sunset", name: "Sunset", description: "Warm orange-red energy", colors: ["#F97316", "#EF4444", "#FACC15"] },
-    { id: "ocean", name: "Ocean", description: "Blue-teal depths", colors: ["#3B82F6", "#06B6D4", "#10B981"] },
-    { id: "forest", name: "Forest", description: "Green-emerald nature", colors: ["#10B981", "#059669", "#84CC16"] },
-    { id: "cosmic", name: "Cosmic", description: "Deep space purples", colors: ["#7C3AED", "#C026D3", "#EC4899"] },
-  ];
 
   return (
     <div className="p-6 space-y-6">
@@ -77,45 +69,17 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* Color Palette Picker */}
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-semibold">Color Palette</Label>
-                  <p className="text-xs text-muted-foreground mt-1">Choose your preferred color scheme</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {palettes.map((paletteOption) => (
-                    <div
-                      key={paletteOption.id}
-                      className={`group p-5 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
-                        palette === paletteOption.id
-                          ? "border-primary bg-gradient-to-br from-primary/10 to-accent/10 shadow-lg shadow-primary/20"
-                          : "border-border/50 bg-gradient-glass/50 hover:border-primary/30 hover:shadow-md"
-                      }`}
-                      onClick={() => setPalette(paletteOption.id)}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h4 className="font-semibold text-base">{paletteOption.name}</h4>
-                          <p className="text-xs text-muted-foreground">{paletteOption.description}</p>
-                        </div>
-                        {palette === paletteOption.id && (
-                          <div className="w-6 h-6 bg-gradient-to-r from-primary to-accent rounded-full flex items-center justify-center">
-                            <Check className="w-4 h-4 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        {paletteOption.colors.map((color, index) => (
-                          <div
-                            key={index}
-                            className="flex-1 h-10 rounded-lg border border-border/50 shadow-sm transition-transform duration-300 group-hover:scale-105"
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+              <div className="space-y-3 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 to-accent/10 p-4">
+                <Label className="text-sm font-semibold">Brand Palette</Label>
+                <p className="text-xs text-muted-foreground">
+                  RecruitXchange uses a fixed Somaiya-inspired palette for visual consistency across student,
+                  recruiter, and admin workflows.
+                </p>
+                <div className="flex gap-2">
+                  <div className="h-8 w-16 rounded-md border border-border/50" style={{ backgroundColor: "#800000" }} />
+                  <div className="h-8 w-16 rounded-md border border-border/50" style={{ backgroundColor: "#FFFDD0" }} />
+                  <div className="h-8 w-16 rounded-md border border-border/50" style={{ backgroundColor: "#FFFFFF" }} />
+                  <div className="h-8 w-16 rounded-md border border-border/50" style={{ backgroundColor: "#0F172A" }} />
                 </div>
               </div>
             </CardContent>

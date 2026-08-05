@@ -18,24 +18,12 @@ export default function ReadinessGauge() {
 
   // Dynamic color mappings based on palette
   const paletteColors = {
-    aurora: {
-      cardGradient: "linear-gradient(135deg, hsl(280 100% 65%), hsl(295 100% 75%))"
-    },
-    sunset: {
-      cardGradient: "linear-gradient(135deg, hsl(15 100% 65%), hsl(25 100% 75%))"
-    },
-    ocean: {
-      cardGradient: "linear-gradient(135deg, hsl(200 100% 60%), hsl(210 100% 70%))"
-    },
-    forest: {
-      cardGradient: "linear-gradient(135deg, hsl(140 80% 55%), hsl(150 80% 65%))"
-    },
-    cosmic: {
-      cardGradient: "linear-gradient(135deg, hsl(260 100% 70%), hsl(280 100% 80%))"
+    somaiya: {
+      cardGradient: "linear-gradient(135deg, #800000, #990000)"
     }
   };
 
-  const currentColors = paletteColors[palette] || paletteColors.aurora;
+  const currentColors = paletteColors[palette] || paletteColors.somaiya;
 
   const factors = [
     { name: "Technical Skills", score: 85, color: "text-success" },

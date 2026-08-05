@@ -10,74 +10,49 @@
 /* RecruitXchange Design System */
 @layer base {
   :root {
-    /* Base Colors */
-    --background: 240 10% 98%;
-    --foreground: 240 10% 8%;
-    --card: 240 10% 100%;
-    --card-foreground: 240 10% 8%;
+    /* Somaiya light mode */
+    --background: 40 54% 98%;
+    --foreground: 222 24% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 24% 16%;
     --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 280 100% 65%;
-    --primary-foreground: 240 10% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 270 90% 65%;
-    --accent-foreground: 240 5.9% 10%;
+    --popover-foreground: 222 24% 16%;
+    --primary: 0 100% 25%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 42 42% 94%;
+    --secondary-foreground: 222 24% 16%;
+    --muted: 40 38% 93%;
+    --muted-foreground: 222 12% 42%;
+    --accent: 0 100% 30%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 280 100% 65%;
+    --border: 34 25% 86%;
+    --input: 34 25% 86%;
+    --ring: 0 100% 30%;
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 240 15% 6%;
-    --foreground: 240 10% 95%;
-    --card: 240 15% 8%;
-    --card-foreground: 240 10% 95%;
-    --popover: 240 10% 3.9%;
+    --background: 222 47% 11%;
+    --foreground: 40 30% 94%;
+    --card: 215 28% 18%;
+    --card-foreground: 40 30% 94%;
+    --popover: 215 28% 18%;
     --popover-foreground: 0 0% 95%;
-    --primary: 280 100% 70%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
+    --primary: 0 100% 30%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 26% 24%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 270 90% 70%;
+    --muted: 215 20% 22%;
+    --muted-foreground: 220 10% 70%;
+    --accent: 0 89% 33%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 280 100% 70%;
-  }
-
-  [data-theme="aurora"] {
-    --primary: 280 100% 65%;
-    --accent: 295 100% 75%;
-  }
-
-  [data-theme="sunset"] {
-    --primary: 15 100% 65%;
-    --accent: 25 100% 75%;
-  }
-  
-  [data-theme="ocean"] { 
-    --primary: 200 100% 60%;
-    --accent: 210 100% 70%;
-  }
-  
-  [data-theme="forest"] { 
-    --primary: 140 80% 55%;
-    --accent: 150 80% 65%;
-  }
-  
-  [data-theme="cosmic"] { 
-    --primary: 260 100% 70%;
-    --accent: 280 100% 80%;
+    --border: 215 20% 30%;
+    --input: 215 20% 30%;
+    --ring: 0 100% 30%;
   }
 
   * { 
@@ -92,27 +67,27 @@
 /* Custom Gradient Backgrounds */
 @layer utilities {
   .bg-gradient-primary {
-    background: linear-gradient(135deg, hsl(280 100% 65%), hsl(295 100% 75%));
+    background: linear-gradient(135deg, #800000, #990000);
   }
 
   .bg-gradient-cosmic {
-    background: linear-gradient(135deg, hsl(270 90% 45%) 0%, hsl(280 100% 65%) 50%, hsl(295 100% 75%) 100%);
+    background: linear-gradient(135deg, #5f0000 0%, #800000 50%, #990000 100%);
   }
 
   .bg-gradient-aurora {
-    background: linear-gradient(135deg, hsl(280 100% 65%) 0%, hsl(295 100% 75%) 50%, hsl(310 100% 70%) 100%);
+    background: linear-gradient(135deg, #800000 0%, #990000 55%, #b91c1c 100%);
   }
 
   .bg-gradient-sunset {
-    background: linear-gradient(135deg, hsl(15 100% 65%) 0%, hsl(25 100% 75%) 50%, hsl(35 100% 70%) 100%);
+    background: linear-gradient(135deg, #800000 0%, #a31212 50%, #d64a4a 100%);
   }
 
   .bg-gradient-ocean {
-    background: linear-gradient(135deg, hsl(200 100% 60%) 0%, hsl(210 100% 70%) 50%, hsl(220 100% 65%) 100%);
+    background: linear-gradient(135deg, #800000 0%, #990000 50%, #fdfbf7 100%);
   }
 
   .bg-gradient-forest {
-    background: linear-gradient(135deg, hsl(140 80% 55%) 0%, hsl(150 80% 65%) 50%, hsl(160 80% 60%) 100%);
+    background: linear-gradient(135deg, #5f0000 0%, #800000 50%, #990000 100%);
   }
 
   .bg-gradient-glass {

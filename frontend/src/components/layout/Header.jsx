@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, Menu, Search, User, MessageSquare, Zap, LogOut } from "lucide-react";
+import { Bell, Menu, Search, User, MessageSquare, Zap, LogOut, Moon, Sun, Shield, Building2, GraduationCap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar.jsx";
@@ -16,7 +17,7 @@ import { Badge } from "@/components/ui/badge.jsx";
 import { useAuth } from "@/contexts/AuthContext.jsx";
 
 export function Header({ onMenuClick }) {
-  const { user, logout } = useAuth();
+  const { user, logout, switchRole, role, theme, setTheme } = useAuth();
   const navigate = useNavigate();
   
   const handleLogout = () => {
@@ -30,6 +31,17 @@ export function Header({ onMenuClick }) {
   const userInitials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'U';
   const userName = user?.name || 'User';
   const userEmail = user?.email || 'user@example.com';
+
+  const roleMeta = {
+    student: { label: 'Student', icon: GraduationCap },
+    recruiter: { label: 'Recruiter', icon: Building2 },
+    admin: { label: 'Placement Officer', icon: Shield },
+  };
+
+  const currentRole = roleMeta[role || 'student'];
+  const CurrentRoleIcon = currentRole.icon;
+  const recruiterPending = user?.role === 'recruiter' && user?.status === 'pending_approval';
+
   return (
     <header className="sticky top-0 z-30 h-20 border-b border-border/50 bg-card/60 backdrop-blur-2xl px-4 lg:px-8 shadow-sm">
       <div className="flex h-full items-center gap-4">
@@ -116,9 +128,25 @@ export function Header({ onMenuClick }) {
                   </Avatar>
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-semibold leading-none">{userName}</p>
-                    {/* <p className="text-xs text-muted-foreground mt-0.5">
-                      Level 12 • 87% Ready
-                    </p> */}
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                        <CurrentRoleIcon className="h-3 w-3" />
+                        {currentRole.label}
+                      </span>
+                      <AnimatePresence mode="wait">
+                        {recruiterPending ? (
+                          <motion.span
+                            key="pending-approval"
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 4 }}
+                            className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-600"
+                          >
+                            Pending Approval
+                          </motion.span>
+                        ) : null}
+                      </AnimatePresence>
+                    </div>
                   </div>
                 </div>
               </Button>
@@ -165,6 +193,25 @@ export function Header({ onMenuClick }) {
               >
                 <User className="w-4 h-4 mr-3 text-muted-foreground" />
                 View Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem className="rounded-lg py-2.5 px-3 cursor-pointer" onClick={() => switchRole('student')}>
+                <GraduationCap className="w-4 h-4 mr-3 text-muted-foreground" />
+                Switch to Student
+              </DropdownMenuItem>
+              <DropdownMenuItem className="rounded-lg py-2.5 px-3 cursor-pointer" onClick={() => switchRole('recruiter')}>
+                <Building2 className="w-4 h-4 mr-3 text-muted-foreground" />
+                Switch to Recruiter
+              </DropdownMenuItem>
+              <DropdownMenuItem className="rounded-lg py-2.5 px-3 cursor-pointer" onClick={() => switchRole('admin')}>
+                <Shield className="w-4 h-4 mr-3 text-muted-foreground" />
+                Switch to Placement Officer
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-lg py-2.5 px-3 cursor-pointer"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4 mr-3 text-muted-foreground" /> : <Moon className="w-4 h-4 mr-3 text-muted-foreground" />}
+                Switch to {theme === 'dark' ? 'Light' : 'Dark'} Mode
               </DropdownMenuItem>
               <DropdownMenuItem className="rounded-lg py-2.5 px-3 cursor-pointer">
                 <MessageSquare className="w-4 h-4 mr-3 text-muted-foreground" />

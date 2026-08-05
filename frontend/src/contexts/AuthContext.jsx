@@ -24,6 +24,11 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light';
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark' ? 'dark' : 'light';
+  });
 
   // Use Vite environment variable in production; fallback to localhost for dev
   const API_BASE_URL = import.meta.env.VITE_API_URL
@@ -54,6 +59,13 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   const checkAuthStatus = async () => {
     try {
@@ -108,11 +120,15 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const switchRole = useCallback((role, userData = {}) => {
+    const roleStatus = role === 'recruiter' ? 'pending_approval' : 'active';
     const mockUser = {
       id: `mock-${role}`,
-      name: userData.name || (role === 'admin' ? 'Admin User' : 'Student User'),
+      name:
+        userData.name ||
+        (role === 'admin' ? 'Placement Officer' : role === 'recruiter' ? 'Recruiter User' : 'Student User'),
       email: userData.email || `${role}@recruitxchange.local`,
       role,
+      status: roleStatus,
       authType: 'mock',
       ...userData,
     };
@@ -303,7 +319,16 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     isAuthenticated,
+    isLoggedIn: isAuthenticated,
     user,
+    currentUser: user,
+    role: user?.role || null,
+    theme,
+    setTheme,
+    isAdmin: user?.role === 'admin',
+    isStudent: user?.role === 'student',
+    isRecruiter: user?.role === 'recruiter',
+    isApprovedRecruiter: user?.role === 'recruiter' && user?.status === 'active',
     login,
     logout,
     signup,
