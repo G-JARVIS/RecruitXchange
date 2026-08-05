@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button.jsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Label } from "@/components/ui/label.jsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.jsx";
 import { ArrowRight, Lock, User, Sparkles, Mail, UserPlus, Shield } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext.jsx";
+import { useAuth } from "@/context/AuthContext.jsx";
 import { useToast } from "@/components/ui/use-toast.js";
 
 export default function SignInSignUp() {
@@ -18,8 +19,9 @@ export default function SignInSignUp() {
     role: 'student'
   });
   const [loading, setLoading] = useState(false);
-  
-  const { login, signup } = useAuth();
+  const navigate = useNavigate();
+
+  const { switchRole } = useAuth();
   const { toast } = useToast();
 
   const handleInputChange = (e) => {
@@ -34,41 +36,29 @@ export default function SignInSignUp() {
     setLoading(true);
 
     try {
-      let result;
-      
-      if (isSignUp) {
-        if (formData.password !== formData.confirmPassword) {
-          toast({
-            title: "Error",
-            description: "Passwords do not match",
-            variant: "destructive"
-          });
-          setLoading(false);
-          return;
-        }
-        
-        result = await signup({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role: formData.role
-        });
-      } else {
-        result = await login(formData.email, formData.password);
-      }
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: isSignUp ? "Account created successfully!" : "Welcome back!",
-        });
-      } else {
+      if (isSignUp && formData.password !== formData.confirmPassword) {
         toast({
           title: "Error",
-          description: result.message,
+          description: "Passwords do not match",
           variant: "destructive"
         });
+        setLoading(false);
+        return;
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
+      switchRole(formData.role, {
+        name: formData.name || (formData.role === 'admin' ? 'Admin User' : 'Student User'),
+        email: formData.email,
+      });
+
+      toast({
+        title: "Success",
+        description: isSignUp ? "Account created successfully!" : "Welcome back!",
+      });
+
+      navigate('/dashboard');
     } catch (error) {
       toast({
         title: "Error",

@@ -107,6 +107,25 @@ export const AuthProvider = ({ children }) => {
     cleanupActivityTracking();
   }, []);
 
+  const switchRole = useCallback((role, userData = {}) => {
+    const mockUser = {
+      id: `mock-${role}`,
+      name: userData.name || (role === 'admin' ? 'Admin User' : 'Student User'),
+      email: userData.email || `${role}@recruitxchange.local`,
+      role,
+      authType: 'mock',
+      ...userData,
+    };
+
+    setSessionData(SESSION_KEYS.TOKEN, `mock-${role}-token`);
+    setSessionData(SESSION_KEYS.USER, mockUser);
+    setIsAuthenticated(true);
+    setUser(mockUser);
+    initActivityTracking();
+
+    return mockUser;
+  }, []);
+
   // Periodic session validation - less frequent to avoid network issues
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -288,6 +307,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     signup,
+    switchRole,
     loading,
     API_BASE_URL,
     getAuthHeaders,

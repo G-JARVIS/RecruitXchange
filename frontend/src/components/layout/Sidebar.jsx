@@ -1,6 +1,5 @@
 import React from "react";
 import { X, Home, BookOpen, Code, Users, TrendingUp, Settings, GraduationCap, Calendar, Sparkles, Target, FileText, Shield, UserCheck, Building2 } from "lucide-react";
-import { GamepadIcon } from "lucide-react";  // Add to your existing imports
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils.js";
 import { Button } from "@/components/ui/button.jsx";
@@ -16,7 +15,6 @@ const studentNavigation = [
   { name: "Counseling", href: "/counseling", icon: GraduationCap, badge: null },
   { name: "My Drives", href: "/drives", icon: Users, badge: "12" },
   { name: "Calendar", href: "/calendar", icon: Calendar, badge: null },
-  { name: "Method Invader", href: "/method-invader", icon: GamepadIcon, badge: "Fun" },
 ];
 
 const adminNavigation = [

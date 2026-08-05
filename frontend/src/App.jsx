@@ -22,7 +22,6 @@ import Settings from "./pages/Settings.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import Goals from "./pages/Goals.jsx";
 import ResumeBuilder from "./pages/ResumeBuilder.jsx";
-import MethodInvader from "./pages/MethodInvader";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
@@ -44,6 +43,7 @@ const App = () => (
           <AppLayout>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Index />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/roles" element={<RoleExplorerSimple />} />
               <Route path="/learning" element={<LearningHub />} />
@@ -53,7 +53,6 @@ const App = () => (
               <Route path="/calendar" element={<Calendar />} />
               <Route path="/goals" element={<Goals />} />
               <Route path="/resume-builder" element={<ResumeBuilder />} />
-              <Route path="/method-invader" element={<MethodInvader />} />
               <Route path="/settings" element={<Settings />} />
 
               {/* Admin Routes */}
